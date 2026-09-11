@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Character Sheet Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0f0c09;
+      --parchment: #e8d5b5;
+      --parchment-dark: #d4c09a;
+      --ink: #1a120b;
+      --accent: #7a1515;
+      --gold: #b8860b;
+      --gold-light: #d4a84b;
+      --border: #3d2b1f;
+      --border-light: #6b4e35;
+      --muted: #5c4a38;
+      --danger: #8b1a1a;
+      --card-shadow: 0 6px 20px rgba(0,0,0,0.55);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--bg);
+      background-image: 
+        radial-gradient(ellipse at 20% 30%, rgba(90, 50, 20, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 70%, rgba(60, 30, 10, 0.12) 0%, transparent 45%);
+      color: var(--ink);
+      min-height: 100vh;
+      line-height: 1.45;
+    }
+
+    /* Toolbar - heavier medieval banner */
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: linear-gradient(180deg, #2a1c12 0%, #1a120c 40%, #120d09 100%);
+      border-bottom: 4px solid var(--gold);
+      box-shadow: 0 4px 0 #5c3d1a, 0 8px 24px rgba(0,0,0,0.6);
+      padding: 0.85rem 1.4rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .toolbar h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: var(--gold-light);
+      letter-spacing: 0.12em;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+      margin-right: 1rem;
+    }
+
+    .toolbar-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    button, .btn {
+      font-family: 'Cinzel', serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      padding: 0.5rem 1rem;
+      border: 2px solid var(--gold);
+      background: linear-gradient(180deg, #3a2818 0%, #24180f 100%);
+      color: var(--gold-light);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      box-shadow: 0 2px 0 #5c3d1a;
+    }
+
+    button:hover, .btn:hover {
+      background: linear-gradient(180deg, var(--gold) 0%, #9a7010 100%);
+      color: #1a120b;
+      transform: translateY(-1px);
+      box-shadow: 0 3px 0 #5c3d1a;
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, #9a1f1f 0%, #6b1212 100%);
+      border-color: var(--gold);
+      color: #f5e6c8;
+    }
+
+    button.primary:hover {
+      background: linear-gradient(180deg, #c42a2a 0%, #8b1a1a 100%);
+      color: #fff;
+    }
+
+    button.danger {
+      border-color: #a33;
+      color: #e88;
+    }
+
+    button.danger:hover {
+      background: #8b1a1a;
+      color: #fff;
+    }
+
+    button.small {
+      font-size: 0.68rem;
+      padding: 0.28rem 0.55rem;
+    }
+
+    /* Main layout */
+    .sheet {
+      max-width: 1120px;
+      margin: 1.6rem auto;
+      padding: 0 1rem 3.5rem;
+    }
+
+    .card {
+      background: var(--parchment);
+      border: 3px solid var(--border);
+      border-radius: 4px;
+      padding: 1.15rem 1.35rem;
+      margin-bottom: 1.2rem;
+      box-shadow: var(--card-shadow), inset 0 0 40px rgba(90, 60, 30, 0.08);
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border: 1px solid rgba(90, 60, 30, 0.28);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    .card-title {
+      font-family: 'Cinzel', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.9rem;
+      padding-bottom: 0.4rem;
+      border-bottom: 2px solid var(--gold);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.25);
+    }
+
+    /* Header */
+    .header-grid {
+      display: grid;
+      grid-template-columns: 2fr 1.3fr 1.1fr 1.1fr 1.2fr;
+      gap: 0.8rem;
+    }
+
+    @media (max-width: 850px) {
+      .header-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .field label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1.05rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid var(--border-light);
+      padding: 0.28rem 0.15rem;
+      color: var(--ink);
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-bottom-color: var(--accent);
+    }
+
+    .field textarea {
+      border: 2px solid var(--border-light);
+      border-radius: 3px;
+      padding: 0.65rem;
+      min-height: 120px;
+      resize: vertical;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .field textarea.large { min-height: 120px; }
+    .field textarea.xlarge { min-height: 160px; }
+    .field textarea.skills { min-height: 200px; }
+    .field textarea.auto-expand {
+      overflow-y: hidden;
+      resize: none;
+      transition: height 0.1s ease;
+    }
+
+    /* Ability scores */
+    .abilities {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.7rem;
+    }
+
+    @media (max-width: 700px) {
+      .abilities { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 450px) {
+      .abilities { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .ability-box {
+      background: linear-gradient(180deg, var(--parchment-dark) 0%, #c9b48a 100%);
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      text-align: center;
+      padding: 0.65rem 0.3rem 0.7rem;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+
+    .ability-box .abil-name {
+      font-family: 'Cinzel', serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .ability-box input.score {
+      font-size: 1.6rem;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      margin: 0.18rem 0 0.1rem;
+    }
+
+    .ability-box .mod {
+      display: inline-block;
+      background: linear-gradient(180deg, #2a1c12 0%, #1a120b 100%);
+      color: var(--gold-light);
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      min-width: 2.5rem;
+      padding: 0.18rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid var(--gold);
+      box-shadow: 0 2px 0 #3d2b1f;
+    }
+
+    /* Class + Misc stats */
+    .bonus-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .bonus-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.4rem;
+      font-size: 1.02rem;
+    }
+
+    .bonus-line .label {
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 115px;
+    }
+
+    .bonus-line input[type="text"],
+    .bonus-line input[type="number"] {
+      font-family: 'Crimson Pro', serif;
+      font-size: 1.02rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid var(--border-light);
+      padding: 0.15rem 0.25rem;
+      color: var(--ink);
+      outline: none;
+      min-width: 55px;
+    }
+
+    .bonus-line input[type="text"] { min-width: 170px; flex: 1; }
+    .bonus-line input:focus { border-bottom-color: var(--accent); }
+
+    .bonus-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.55rem;
+      margin-top: 0.35rem;
+    }
+
+    @media (max-width: 600px) {
+      .bonus-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    .bonus-box {
+      background: linear-gradient(180deg, var(--parchment-dark) 0%, #c9b48a 100%);
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      padding: 0.5rem 0.3rem;
+      text-align: center;
+    }
+
+    .bonus-box .b-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.66rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .bonus-box input {
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      margin-top: 0.15rem;
+    }
+
+    /* Character Images */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 700px) {
+      .image-grid { grid-template-columns: 1fr; }
+    }
+
+    .image-slot {
+      background: linear-gradient(180deg, var(--parchment-dark) 0%, #c9b48a 100%);
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      padding: 0.75rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .image-slot .view-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .image-preview {
+      width: 100%;
+      aspect-ratio: 3/4;
+      background: #c4b089;
+      border: 2px dashed var(--border-light);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .image-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .image-preview.has-image img { display: block; }
+    .image-preview .placeholder {
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 0.5rem;
+    }
+    .image-preview.has-image .placeholder { display: none; }
+
+    .image-actions {
+      display: flex;
+      gap: 0.4rem;
+      justify-content: center;
+    }
+    .image-actions input[type="file"] { display: none; }
+
+    /* Combat */
+    .combat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.65rem;
+      margin-bottom: 0.95rem;
+    }
+
+    .stat-box {
+      background: linear-gradient(180deg, var(--parchment-dark) 0%, #c9b48a 100%);
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      text-align: center;
+      padding: 0.55rem 0.3rem;
+    }
+
+    .stat-box .label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.64rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .stat-box input {
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+      margin-top: 0.15rem;
+    }
+
+    .hp-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.55rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .resist-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.65rem;
+      margin-top: 0.6rem;
+    }
+
+    .resist-box {
+      background: linear-gradient(180deg, var(--parchment-dark) 0%, #c9b48a 100%);
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      padding: 0.55rem;
+      text-align: center;
+    }
+
+    .resist-box .label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.66rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .resist-box input {
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    /* Attacks table */
+    .attacks-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .attacks-table th {
+      font-family: 'Cinzel', serif;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      text-align: left;
+      padding: 0.35rem 0.4rem;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .attacks-table td {
+      padding: 0.3rem 0.3rem;
+      border-bottom: 1px solid rgba(90,60,30,0.18);
+      vertical-align: middle;
+    }
+
+    .attacks-table input {
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid transparent;
+      background: transparent;
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 0.2rem 0;
+    }
+
+    .attacks-table input:focus {
+      border-bottom-color: var(--accent);
+      outline: none;
+    }
+
+    .add-row-btn {
+      margin-top: 0.55rem;
+      font-size: 0.72rem;
+      padding: 0.32rem 0.75rem;
+    }
+
+    /* Cache */
+    .cache-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+    }
+
+    .cache-box {
+      background: linear-gradient(180deg, var(--parchment-dark) 0%, #c9b48a 100%);
+      border: 2px solid var(--border);
+      border-radius: 5px;
+      padding: 0.65rem;
+      text-align: center;
+    }
+
+    .cache-box .label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.25rem;
+    }
+
+    .cache-box input {
+      font-size: 1.4rem;
+      font-weight: 700;
+      text-align: center;
+      width: 100%;
+      border: none;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    /* Two column */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.15rem;
+    }
+
+    @media (max-width: 700px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--parchment);
+      border: 3px solid var(--border);
+      border-radius: 5px;
+      max-width: 480px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 1.5rem;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+    }
+
+    .modal h2 {
+      font-family: 'Cinzel', serif;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+
+    .char-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .char-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0.85rem;
+      background: var(--parchment-dark);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .char-list li:hover { background: #c9b48a; }
+    .char-list .char-info { font-weight: 600; }
+    .char-list .char-meta { font-size: 0.85rem; color: var(--muted); }
+    .char-list .delete-btn {
+      background: none;
+      border: none;
+      color: var(--danger);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 0 0.3rem;
+    }
+
+    /* Print */
+    @media print {
+      body { background: white; }
+      .toolbar, .add-row-btn, button, .image-actions { display: none !important; }
+      .sheet { margin: 0; padding: 0; max-width: none; }
+      .card {
+        break-inside: avoid;
+        box-shadow: none;
+        border-width: 1.5px;
+        margin-bottom: 0.6rem;
+        padding: 0.7rem;
+      }
+      .card::before { display: none; }
+      .image-preview { border-style: solid; }
+    }
+
+    .small-text {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>⚔ Character Sheet</h1>
+    <div class="toolbar-buttons">
+      <button onclick="newCharacter()" class="primary">New Character (blank file)</button>
+      <button onclick="saveCharacter()">Save / Update File</button>
+      <button onclick="saveAsNewCharacter()">Save as New File</button>
+      <button onclick="openLoadModal()">Load</button>
+      <button onclick="exportJSON()">Export JSON</button>
+      <button onclick="document.getElementById('importFile').click()">Import</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      <button onclick="window.print()">Print / PDF</button>
+      <button onclick="clearAllCharacters()" class="danger">Clear All Saves</button>
+    </div>
+  </div>
+  <div id="saveStatus" style="background:#2a1c12;color:#d4a84b;font-family:'Cinzel',serif;font-size:0.75rem;padding:0.35rem 1.4rem;border-bottom:1px solid #5c3d1a;letter-spacing:0.04em;">
+    Each character becomes its own <b>.html file</b> on your computer. Use <b>Save as New</b> for a new file, <b>Save (Update)</b> to refresh the current one.
+  </div>
+
+  <div class="sheet" id="sheet">
+
+    <!-- CHARACTER HEADER -->
+    <div class="card">
+      <div class="card-title">Character</div>
+      <div class="header-grid">
+        <div class="field">
+          <label>Character Name</label>
+          <input type="text" id="charName" placeholder="Name">
+        </div>
+        <div class="field">
+          <label>Class & Level</label>
+          <input type="text" id="classLevel" placeholder="Warrior 5">
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <input type="text" id="background" placeholder="Soldier">
+        </div>
+        <div class="field">
+          <label>Player Name</label>
+          <input type="text" id="playerName" placeholder="Your name">
+        </div>
+        <div class="field">
+          <label>Race</label>
+          <input type="text" id="race" placeholder="Human">
+        </div>
+        <div class="field">
+          <label>Experience Points</label>
+          <input type="text" id="xp" placeholder="e.g. 1250 or Level 3 threshold">
+        </div>
+        <div class="field">
+          <label>Character Rank</label>
+          <input type="text" id="charRank" placeholder="e.g. Elite, Commander...">
+        </div>
+        <div class="field">
+          <label>Character Power Level</label>
+          <input type="text" id="powerLevel" placeholder="e.g. 2500, Rank A...">
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARACTER IMAGES -->
+    <div class="card">
+      <div class="card-title">Character Appearance</div>
+      <div class="image-grid">
+        <div class="image-slot">
+          <div class="view-label">Front View</div>
+          <div class="image-preview" id="preview-front" onclick="document.getElementById('file-front').click()">
+            <img id="img-front" alt="Front view">
+            <div class="placeholder">Click or Upload<br>Front View</div>
+          </div>
+          <div class="image-actions">
+            <button class="small" onclick="document.getElementById('file-front').click()">Upload</button>
+            <button class="small danger" onclick="clearImage('front')">Clear</button>
+            <input type="file" id="file-front" accept="image/*" onchange="handleImageUpload(event, 'front')">
+          </div>
+        </div>
+        <div class="image-slot">
+          <div class="view-label">Side View</div>
+          <div class="image-preview" id="preview-side" onclick="document.getElementById('file-side').click()">
+            <img id="img-side" alt="Side view">
+            <div class="placeholder">Click or Upload<br>Side View</div>
+          </div>
+          <div class="image-actions">
+            <button class="small" onclick="document.getElementById('file-side').click()">Upload</button>
+            <button class="small danger" onclick="clearImage('side')">Clear</button>
+            <input type="file" id="file-side" accept="image/*" onchange="handleImageUpload(event, 'side')">
+          </div>
+        </div>
+        <div class="image-slot">
+          <div class="view-label">Rear View</div>
+          <div class="image-preview" id="preview-rear" onclick="document.getElementById('file-rear').click()">
+            <img id="img-rear" alt="Rear view">
+            <div class="placeholder">Click or Upload<br>Rear View</div>
+          </div>
+          <div class="image-actions">
+            <button class="small" onclick="document.getElementById('file-rear').click()">Upload</button>
+            <button class="small danger" onclick="clearImage('rear')">Clear</button>
+            <input type="file" id="file-rear" accept="image/*" onchange="handleImageUpload(event, 'rear')">
+          </div>
+        </div>
+      </div>
+      <p class="small-text" style="margin-top:0.7rem;">Images are stored with the character (saved locally / exported in JSON).</p>
+    </div>
+
+    <!-- PRIMARY STATS (Raw scores) -->
+    <div class="card">
+      <div class="card-title">Primary Stats</div>
+      <div class="abilities" id="abilities">
+        <!-- Generated by JS -->
+      </div>
+      <p class="small-text" style="margin-top:0.65rem;">Enter the raw score. The modifier is half of the score you enter, rounded down.</p>
+    </div>
+
+    <!-- CLASS STATS -->
+    <div class="card">
+      <div class="card-title">Class Stats</div>
+      <div class="bonus-section">
+        <div class="bonus-line">
+          <span class="label">Class Title:</span>
+          <input type="text" id="classTitle" placeholder="e.g. Shadowblade" style="min-width:160px;">
+          <span>Grants</span>
+          <input type="number" id="classGrantSTR" placeholder="0" style="width:55px;"> Strength,
+          <input type="number" id="classGrantAGI" placeholder="0" style="width:55px;"> Agility,
+          <input type="number" id="classGrantSTA" placeholder="0" style="width:55px;"> Stamina,
+          <input type="number" id="classGrantINT" placeholder="0" style="width:55px;"> Intellect and
+          <input type="number" id="classGrantSPI" placeholder="0" style="width:55px;"> Spirit
+        </div>
+
+        <div class="bonus-line">
+          <span class="label">Current Level:</span>
+          <input type="number" id="classCurrentLevel" placeholder="1" style="width:60px;">
+          <span>(+</span>
+          <input type="number" id="levelBonusSTR" placeholder="0" style="width:50px;"> Strength,
+          <input type="number" id="levelBonusAGI" placeholder="0" style="width:50px;"> Agility,
+          <input type="number" id="levelBonusSTA" placeholder="0" style="width:50px;"> Stamina,
+          <input type="number" id="levelBonusINT" placeholder="0" style="width:50px;"> Intellect and
+          <input type="number" id="levelBonusSPI" placeholder="0" style="width:50px;"> Spirit)
+        </div>
+      </div>
+    </div>
+
+    <!-- MISC STAT ADDITIONS (new) -->
+    <div class="card">
+      <div class="card-title">Misc Stat Additions</div>
+      <div class="bonus-section">
+        <p class="small-text" style="margin-bottom:0.4rem;">Bonuses from items, racial traits, temporary effects, feats, etc.</p>
+        <div class="bonus-grid">
+          <div class="bonus-box">
+            <div class="b-label">Strength</div>
+            <input type="number" id="miscSTR" value="0">
+          </div>
+          <div class="bonus-box">
+            <div class="b-label">Agility</div>
+            <input type="number" id="miscAGI" value="0">
+          </div>
+          <div class="bonus-box">
+            <div class="b-label">Stamina</div>
+            <input type="number" id="miscSTA" value="0">
+          </div>
+          <div class="bonus-box">
+            <div class="b-label">Intellect</div>
+            <input type="number" id="miscINT" value="0">
+          </div>
+          <div class="bonus-box">
+            <div class="b-label">Spirit</div>
+            <input type="number" id="miscSPI" value="0">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMBAT -->
+    <div class="card">
+      <div class="card-title">Combat</div>
+      <div class="combat-grid">
+        <div class="stat-box">
+          <div class="label">Dodge Rating</div>
+          <input type="number" id="dodgeRating" value="0">
+        </div>
+        <div class="stat-box">
+          <div class="label">Initiative</div>
+          <input type="number" id="initiative" value="0">
+        </div>
+        <div class="stat-box">
+          <div class="label">Speed</div>
+          <input type="text" id="speed" value="30 ft.">
+        </div>
+      </div>
+
+      <div class="hp-row">
+        <div class="field">
+          <label>Hit Point Maximum</label>
+          <input type="number" id="hpMax" value="0">
+        </div>
+        <div class="field">
+          <label>Current HP</label>
+          <input type="number" id="hpCurrent" value="0">
+        </div>
+        <div class="field">
+          <label>Temporary HP</label>
+          <input type="number" id="hpTemp" value="0">
+        </div>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; gap:1.2rem; margin-bottom:0.9rem; align-items:flex-end;">
+        <div class="field" style="max-width:180px;">
+          <label>Passive Perception</label>
+          <input type="number" id="passivePerception" value="0">
+        </div>
+        <div class="field" style="max-width:280px;">
+          <label>Crit Bonus</label>
+          <div style="display:flex; align-items:center; gap:0.4rem; font-size:1.15rem; font-weight:700;">
+            <span style="font-family:'Cinzel',serif; color:var(--accent);">10</span>
+            <span>+</span>
+            <input type="number" id="critBonusExtra" value="0" style="width:70px; text-align:center; font-size:1.2rem; font-weight:700; border:none; border-bottom:2px solid var(--border-light); background:transparent; color:var(--ink);" oninput="updateCritTotal()">
+            <span>=</span>
+            <span id="critBonusTotal" style="font-family:'Cinzel',serif; color:var(--accent); min-width:2.2rem;">10</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-title" style="font-size:0.95rem; margin-top:0.35rem;">Resistances</div>
+      <div class="resist-row">
+        <div class="resist-box">
+          <div class="label">Non-Magical</div>
+          <input type="number" id="resistNonMagical" value="0" placeholder="0">
+        </div>
+        <div class="resist-box">
+          <div class="label">Magical</div>
+          <input type="number" id="resistMagical" value="0" placeholder="0">
+        </div>
+        <div class="resist-box">
+          <div class="label">Elemental</div>
+          <input type="number" id="resistElemental" value="0" placeholder="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- ATTACKS -->
+    <div class="card">
+      <div class="card-title">Attacks & Spellcasting</div>
+      <table class="attacks-table">
+        <thead>
+          <tr>
+            <th style="width:32%">Name</th>
+            <th style="width:18%">Atk Bonus</th>
+            <th style="width:28%">Damage / Type</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="attacksBody"></tbody>
+      </table>
+      <button class="add-row-btn" onclick="addAttackRow()">+ Add Attack</button>
+    </div>
+
+    <!-- CACHE -->
+    <div class="card">
+      <div class="card-title">Cache</div>
+      <div class="cache-grid">
+        <div class="cache-box">
+          <div class="label">Gold</div>
+          <input type="number" id="gold" value="0" min="0">
+        </div>
+        <div class="cache-box">
+          <div class="label">Silver</div>
+          <input type="number" id="silver" value="0" min="0">
+        </div>
+        <div class="cache-box">
+          <div class="label">Copper</div>
+          <input type="number" id="copper" value="0" min="0">
+        </div>
+      </div>
+    </div>
+
+    <!-- EQUIPMENT (split) -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Helm</div>
+        <div class="field">
+          <textarea id="equipHelm" class="large auto-expand" placeholder="Helmet / headgear..."></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Necklace, Trinket, Rings (2)</div>
+        <div class="field">
+          <textarea id="equipAccessories" class="large auto-expand" placeholder="Necklace, trinkets, rings..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Set Piece (Set of Armor)</div>
+        <div class="field">
+          <textarea id="equipArmor" class="large auto-expand" placeholder="Armor set / body armor..."></textarea>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Weapons</div>
+        <div class="field">
+          <textarea id="equipWeapons" class="large auto-expand" placeholder="Weapons..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- FEATURES -->
+    <div class="card">
+      <div class="card-title">Features & Traits</div>
+      <div class="field">
+        <textarea id="features" class="large auto-expand" placeholder="Class features, racial traits, feats..."></textarea>
+      </div>
+    </div>
+
+    <!-- PERSONALITY -->
+    <div class="card">
+      <div class="card-title">Personality</div>
+      <div class="two-col" style="margin-bottom:0.85rem;">
+        <div class="field">
+          <label>Personality Traits</label>
+          <textarea id="traits" class="auto-expand" rows="3"></textarea>
+        </div>
+        <div class="field">
+          <label>Ideals</label>
+          <textarea id="ideals" class="auto-expand" rows="3"></textarea>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="field">
+          <label>Bonds</label>
+          <textarea id="bonds" class="auto-expand" rows="3"></textarea>
+        </div>
+        <div class="field">
+          <label>Flaws</label>
+          <textarea id="flaws" class="auto-expand" rows="3"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="card">
+      <div class="card-title">Notes & Backstory</div>
+      <div class="field">
+        <textarea id="notes" class="xlarge auto-expand" placeholder="Allies, organizations, backstory, treasure, quests..."></textarea>
+      </div>
+    </div>
+
+    <!-- SKILLS (was free text) -->
+    <div class="card">
+      <div class="card-title">Skills</div>
+      <div class="field">
+        <textarea id="freeText" class="skills auto-expand" placeholder="List and describe skills, trained abilities, special techniques, etc."></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Load Modal -->
+  <div class="modal-overlay" id="loadModal">
+    <div class="modal">
+      <h2>Load Character</h2>
+      <ul class="char-list" id="charList"></ul>
+      <div style="margin-top:1.2rem;text-align:right;">
+        <button onclick="closeLoadModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ABILITIES = ['STR', 'AGI', 'STA', 'INT', 'SPI'];
+    const ABILITY_FULL = {
+      STR: 'Strength',
+      AGI: 'Agility',
+      STA: 'Stamina',
+      INT: 'Intellect',
+      SPI: 'Spirit'
+    };
+
+    let abilityScores = { STR: 0, AGI: 0, STA: 0, INT: 0, SPI: 0 };
+    let characterImages = { front: '', side: '', rear: '' };
+    let currentCharacterId = null; // unique ID so characters never overwrite each other by name
+
+    function generateId() {
+      return 'char_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 9);
+    }
+
+    function autoExpandTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.max(el.scrollHeight, 60) + 'px';
+    }
+
+    function setupAutoExpand() {
+      document.querySelectorAll('textarea.auto-expand').forEach(el => {
+        autoExpandTextarea(el);
+        el.addEventListener('input', () => autoExpandTextarea(el));
+      });
+    }
+
+    function init() {
+      renderAbilities();
+      addAttackRow();
+      addAttackRow();
+      updateAllModifiers();
+      updateCritTotal();
+      setupAutoExpand();
+
+      // Load character baked into this HTML file (if any)
+      try {
+        const loaded = readEmbeddedCharacterFromPage();
+        if (loaded) {
+          applyData(loaded);
+          updateSaveStatus('Loaded “' + (loaded.name || 'character') + '” from this HTML file.');
+        } else {
+          updateSaveStatus();
+        }
+      } catch (err) {
+        console.error('Failed to load embedded character', err);
+        updateSaveStatus('Could not load embedded character data. Use Import JSON as a backup.');
+      }
+    }
+
+    // Decode character data stored inside this HTML file
+    function readEmbeddedCharacterFromPage() {
+      // 1) Preferred: base64 payload (cannot break HTML)
+      const b64El = document.getElementById('character-b64-data');
+      if (b64El && b64El.textContent && b64El.textContent.trim()) {
+        try {
+          return decodeCharacterPayload(b64El.textContent.trim());
+        } catch (e) {
+          console.error('b64 decode failed', e);
+        }
+      }
+      // 2) JSON data island
+      const jsonEl = document.getElementById('character-json-data');
+      if (jsonEl && jsonEl.textContent && jsonEl.textContent.trim() && jsonEl.textContent.trim() !== 'null') {
+        try {
+          // Undo the \u003c protection if present as literal text
+          const raw = jsonEl.textContent.replace(/\\u003c/g, '<');
+          return JSON.parse(raw);
+        } catch (e) {
+          console.error('json island parse failed', e);
+        }
+      }
+      // 3) Legacy
+      if (window.EMBEDDED_CHARACTER && typeof window.EMBEDDED_CHARACTER === 'object') {
+        return window.EMBEDDED_CHARACTER;
+      }
+      return null;
+    }
+
+    // Unicode-safe base64 encode/decode for character JSON
+    function encodeCharacterPayload(obj) {
+      const json = JSON.stringify(obj);
+      // encodeURIComponent handles unicode, unescape+btoa → base64
+      return btoa(unescape(encodeURIComponent(json)));
+    }
+    function decodeCharacterPayload(b64) {
+      const json = decodeURIComponent(escape(atob(b64)));
+      return JSON.parse(json);
+    }
+
+    function renderAbilities() {
+      const container = document.getElementById('abilities');
+      container.innerHTML = '';
+      ABILITIES.forEach(abil => {
+        const box = document.createElement('div');
+        box.className = 'ability-box';
+        box.innerHTML = `
+          <div class="abil-name">${ABILITY_FULL[abil]}</div>
+          <input type="number" class="score" id="score-${abil}" value="${abilityScores[abil]}" min="0"
+                 oninput="onScoreChange('${abil}', this.value)">
+          <div class="mod" id="mod-${abil}">+0</div>
+        `;
+        container.appendChild(box);
+      });
+    }
+
+    // ===== IMAGE =====
+    function handleImageUpload(event, view) {
+      const file = event.target.files[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        characterImages[view] = e.target.result;
+        applyImageToPreview(view, e.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function applyImageToPreview(view, dataUrl) {
+      const img = document.getElementById(`img-${view}`);
+      const preview = document.getElementById(`preview-${view}`);
+      if (dataUrl) {
+        img.src = dataUrl;
+        preview.classList.add('has-image');
+      } else {
+        img.src = '';
+        preview.classList.remove('has-image');
+      }
+    }
+
+    function clearImage(view) {
+      characterImages[view] = '';
+      applyImageToPreview(view, '');
+      const fileInput = document.getElementById(`file-${view}`);
+      if (fileInput) fileInput.value = '';
+    }
+
+    // ===== CALCULATIONS =====
+    // Modifier = floor( primary score / 2 )  — only uses the Primary Stats input
+    function getMod(score) {
+      return Math.floor(Number(score) / 2);
+    }
+
+    function formatMod(mod) {
+      return mod >= 0 ? `+${mod}` : `${mod}`;
+    }
+
+    function onScoreChange(abil, value) {
+      abilityScores[abil] = Number(value) || 0;
+      updateAllModifiers();
+    }
+
+    function updateAllModifiers() {
+      ABILITIES.forEach(abil => {
+        const mod = getMod(abilityScores[abil]);
+        const modEl = document.getElementById(`mod-${abil}`);
+        if (modEl) modEl.textContent = formatMod(mod);
+      });
+
+      // Initiative from Agility primary mod only
+      const agiMod = getMod(abilityScores.AGI);
+      const initEl = document.getElementById('initiative');
+      if (initEl && document.activeElement !== initEl) {
+        initEl.value = agiMod;
+      }
+    }
+
+    function updateCritTotal() {
+      const extra = Number(document.getElementById('critBonusExtra').value) || 0;
+      document.getElementById('critBonusTotal').textContent = 10 + extra;
+    }
+
+    // ===== ATTACKS =====
+    function addAttackRow(data = {}) {
+      const tbody = document.getElementById('attacksBody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" value="${data.name || ''}" placeholder="Longsword"></td>
+        <td><input type="text" value="${data.bonus || ''}" placeholder="+5"></td>
+        <td><input type="text" value="${data.damage || ''}" placeholder="1d8+3 slashing"></td>
+        <td><input type="text" value="${data.notes || ''}" placeholder=""></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    // ===== SAVE / LOAD =====
+    function collectData() {
+      const data = {
+        id: currentCharacterId || generateId(),
+        name: document.getElementById('charName').value,
+        classLevel: document.getElementById('classLevel').value,
+        background: document.getElementById('background').value,
+        playerName: document.getElementById('playerName').value,
+        race: document.getElementById('race').value,
+        xp: document.getElementById('xp').value,
+        charRank: document.getElementById('charRank').value,
+        powerLevel: document.getElementById('powerLevel').value,
+        abilityScores: { ...abilityScores },
+        // Class
+        classTitle: document.getElementById('classTitle').value,
+        classCurrentLevel: document.getElementById('classCurrentLevel').value,
+        classGrantSTR: document.getElementById('classGrantSTR').value,
+        classGrantAGI: document.getElementById('classGrantAGI').value,
+        classGrantSTA: document.getElementById('classGrantSTA').value,
+        classGrantINT: document.getElementById('classGrantINT').value,
+        classGrantSPI: document.getElementById('classGrantSPI').value,
+        levelBonusSTR: document.getElementById('levelBonusSTR').value,
+        levelBonusAGI: document.getElementById('levelBonusAGI').value,
+        levelBonusSTA: document.getElementById('levelBonusSTA').value,
+        levelBonusINT: document.getElementById('levelBonusINT').value,
+        levelBonusSPI: document.getElementById('levelBonusSPI').value,
+        // Misc
+        miscSTR: document.getElementById('miscSTR').value,
+        miscAGI: document.getElementById('miscAGI').value,
+        miscSTA: document.getElementById('miscSTA').value,
+        miscINT: document.getElementById('miscINT').value,
+        miscSPI: document.getElementById('miscSPI').value,
+        // Combat
+        dodgeRating: document.getElementById('dodgeRating').value,
+        initiative: document.getElementById('initiative').value,
+        speed: document.getElementById('speed').value,
+        hpMax: document.getElementById('hpMax').value,
+        hpCurrent: document.getElementById('hpCurrent').value,
+        hpTemp: document.getElementById('hpTemp').value,
+        passivePerception: document.getElementById('passivePerception').value,
+        critBonusExtra: document.getElementById('critBonusExtra').value,
+        resistNonMagical: document.getElementById('resistNonMagical').value,
+        resistMagical: document.getElementById('resistMagical').value,
+        resistElemental: document.getElementById('resistElemental').value,
+        // Cache
+        gold: document.getElementById('gold').value,
+        silver: document.getElementById('silver').value,
+        copper: document.getElementById('copper').value,
+        // Equipment (split)
+        equipHelm: document.getElementById('equipHelm').value,
+        equipAccessories: document.getElementById('equipAccessories').value,
+        equipArmor: document.getElementById('equipArmor').value,
+        equipWeapons: document.getElementById('equipWeapons').value,
+        // Text
+        features: document.getElementById('features').value,
+        traits: document.getElementById('traits').value,
+        ideals: document.getElementById('ideals').value,
+        bonds: document.getElementById('bonds').value,
+        flaws: document.getElementById('flaws').value,
+        notes: document.getElementById('notes').value,
+        freeText: document.getElementById('freeText').value,
+        images: { ...characterImages },
+        attacks: []
+      };
+
+      document.querySelectorAll('#attacksBody tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        data.attacks.push({
+          name: inputs[0].value,
+          bonus: inputs[1].value,
+          damage: inputs[2].value,
+          notes: inputs[3].value
+        });
+      });
+
+      return data;
+    }
+
+    function applyData(data) {
+      if (!data) return;
+
+      currentCharacterId = data.id || generateId();
+
+      document.getElementById('charName').value = data.name || '';
+      document.getElementById('classLevel').value = data.classLevel || '';
+      document.getElementById('background').value = data.background || '';
+      document.getElementById('playerName').value = data.playerName || '';
+      document.getElementById('race').value = data.race || '';
+      document.getElementById('xp').value = data.xp || '';
+      document.getElementById('charRank').value = data.charRank || '';
+      document.getElementById('powerLevel').value = data.powerLevel || '';
+
+      if (data.abilityScores) {
+        abilityScores = {
+          STR: data.abilityScores.STR ?? 0,
+          AGI: data.abilityScores.AGI ?? 0,
+          STA: data.abilityScores.STA ?? 0,
+          INT: data.abilityScores.INT ?? 0,
+          SPI: data.abilityScores.SPI ?? 0
+        };
+      }
+
+      ABILITIES.forEach(abil => {
+        const input = document.getElementById(`score-${abil}`);
+        if (input) input.value = abilityScores[abil];
+      });
+
+      // Class
+      document.getElementById('classTitle').value = data.classTitle || '';
+      document.getElementById('classCurrentLevel').value = data.classCurrentLevel || '';
+      document.getElementById('classGrantSTR').value = data.classGrantSTR || '';
+      document.getElementById('classGrantAGI').value = data.classGrantAGI || '';
+      document.getElementById('classGrantSTA').value = data.classGrantSTA || '';
+      document.getElementById('classGrantINT').value = data.classGrantINT || '';
+      document.getElementById('classGrantSPI').value = data.classGrantSPI || '';
+      document.getElementById('levelBonusSTR').value = data.levelBonusSTR || '';
+      document.getElementById('levelBonusAGI').value = data.levelBonusAGI || '';
+      document.getElementById('levelBonusSTA').value = data.levelBonusSTA || '';
+      document.getElementById('levelBonusINT').value = data.levelBonusINT || '';
+      document.getElementById('levelBonusSPI').value = data.levelBonusSPI || '';
+
+      // Misc
+      document.getElementById('miscSTR').value = data.miscSTR ?? 0;
+      document.getElementById('miscAGI').value = data.miscAGI ?? 0;
+      document.getElementById('miscSTA').value = data.miscSTA ?? 0;
+      document.getElementById('miscINT').value = data.miscINT ?? 0;
+      document.getElementById('miscSPI').value = data.miscSPI ?? 0;
+
+      // Combat
+      document.getElementById('dodgeRating').value = data.dodgeRating ?? 0;
+      document.getElementById('initiative').value = data.initiative ?? 0;
+      document.getElementById('speed').value = data.speed || '30 ft.';
+      document.getElementById('hpMax').value = data.hpMax ?? 0;
+      document.getElementById('hpCurrent').value = data.hpCurrent ?? 0;
+      document.getElementById('hpTemp').value = data.hpTemp ?? 0;
+      document.getElementById('passivePerception').value = data.passivePerception ?? 0;
+      document.getElementById('critBonusExtra').value = data.critBonusExtra ?? 0;
+      document.getElementById('resistNonMagical').value = data.resistNonMagical ?? 0;
+      document.getElementById('resistMagical').value = data.resistMagical ?? 0;
+      document.getElementById('resistElemental').value = data.resistElemental ?? 0;
+      updateCritTotal();
+
+      // Cache
+      document.getElementById('gold').value = data.gold ?? 0;
+      document.getElementById('silver').value = data.silver ?? 0;
+      document.getElementById('copper').value = data.copper ?? 0;
+
+      // Equipment (split)
+      document.getElementById('equipHelm').value = data.equipHelm || '';
+      document.getElementById('equipAccessories').value = data.equipAccessories || '';
+      document.getElementById('equipArmor').value = data.equipArmor || '';
+      document.getElementById('equipWeapons').value = data.equipWeapons || data.equipment || '';
+
+      // Text
+      document.getElementById('features').value = data.features || '';
+      document.getElementById('traits').value = data.traits || '';
+      document.getElementById('ideals').value = data.ideals || '';
+      document.getElementById('bonds').value = data.bonds || '';
+      document.getElementById('flaws').value = data.flaws || '';
+      document.getElementById('notes').value = data.notes || '';
+      document.getElementById('freeText').value = data.freeText || '';
+
+      // Images
+      characterImages = data.images || { front: '', side: '', rear: '' };
+      applyImageToPreview('front', characterImages.front || '');
+      applyImageToPreview('side', characterImages.side || '');
+      applyImageToPreview('rear', characterImages.rear || '');
+
+      // Attacks
+      const tbody = document.getElementById('attacksBody');
+      tbody.innerHTML = '';
+      if (data.attacks && data.attacks.length) {
+        data.attacks.forEach(a => addAttackRow(a));
+      } else {
+        addAttackRow();
+        addAttackRow();
+      }
+
+      updateAllModifiers();
+      updateCritTotal();
+      updateSaveStatus();
+      // re-expand textareas after loading content
+      setTimeout(() => {
+        document.querySelectorAll('textarea.auto-expand').forEach(autoExpandTextarea);
+      }, 50);
+    }
+
+    function getSavedList() {
+      try {
+        const raw = localStorage.getItem('dndChars');
+        const list = raw ? JSON.parse(raw) : [];
+        return Array.isArray(list) ? list : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function writeSavedList(list) {
+      // Deep clone so we never store live object references
+      localStorage.setItem('dndChars', JSON.stringify(JSON.parse(JSON.stringify(list))));
+    }
+
+    function updateSaveStatus(extraMsg) {
+      const status = document.getElementById('saveStatus');
+      if (!status) return;
+      const name = (document.getElementById('charName')?.value || '').trim();
+      const label = name ? `“${name}”` : 'unnamed sheet';
+      const base = currentCharacterId
+        ? `Working on ${label}`
+        : `Blank / new sheet (${label})`;
+      status.innerHTML = extraMsg
+        ? `${extraMsg}`
+        : `${base} &nbsp;•&nbsp; <b>Save as New</b> downloads a new .html file &nbsp;•&nbsp; <b>Save (Update)</b> downloads an updated copy`;
+    }
+
+    // ---- Build a self-contained HTML file with character data baked in ----
+    function buildStandaloneHtml(characterData) {
+      // Deep-clone LIVE form data — this is what restores text later
+      const dataSnapshot = characterData
+        ? JSON.parse(JSON.stringify(characterData))
+        : null;
+
+      let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+      const closeScript = '<' + '/script>';
+
+      // Remove any previous embedded payloads (all formats)
+      ['character-b64-data', 'character-json-data', 'embedded-character-data'].forEach(function (id) {
+        html = html.replace(
+          new RegExp('<script[^>]*id=["\']' + id + '["\'][^>]*>[\\s\\S]*?' + closeScript, 'gi'),
+          ''
+        );
+      });
+
+      let dataBlock = '';
+      if (dataSnapshot) {
+        // Base64-only alphabet → safe inside HTML, never breaks parsing
+        const b64 = encodeCharacterPayload(dataSnapshot);
+        dataBlock =
+          '<script type="text/plain" id="character-b64-data">' + b64 + closeScript + '\n' +
+          '<script id="embedded-character-data">\n' +
+          'window.__CHARACTER_B64__ = document.getElementById("character-b64-data") && document.getElementById("character-b64-data").textContent;\n' +
+          closeScript + '\n';
+      } else {
+        dataBlock =
+          '<script type="text/plain" id="character-b64-data">' + closeScript + '\n';
+      }
+
+      if (/<head[^>]*>/i.test(html)) {
+        html = html.replace(/<head[^>]*>/i, function (match) {
+          return match + '\n' + dataBlock;
+        });
+      } else {
+        html = dataBlock + html;
+      }
+      return html;
+    }
+
+    function safeFilename(name) {
+      const base = (name || 'Character').trim().replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60);
+      return base + '.html';
+    }
+
+    function downloadHtmlFile(filename, htmlContent) {
+      const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    // Always also download a .json backup so text can never be lost
+    function downloadJsonBackup(data) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = safeFilename(data.name).replace(/\.html$/i, '') + '_backup.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    // Verify the HTML we built actually contains the text we think it does
+    function verifyEmbeddedText(html, data) {
+      try {
+        const m = html.match(/id=["']character-b64-data["'][^>]*>([^<]+)/);
+        if (!m) return { ok: false, reason: 'no b64 block in file' };
+        const decoded = decodeCharacterPayload(m[1].trim());
+        const checks = {
+          name: decoded.name === data.name,
+          notes: (decoded.notes || '') === (data.notes || ''),
+          features: (decoded.features || '') === (data.features || ''),
+          freeText: (decoded.freeText || '') === (data.freeText || ''),
+          equipHelm: (decoded.equipHelm || '') === (data.equipHelm || '')
+        };
+        const failed = Object.keys(checks).filter(k => !checks[k]);
+        return { ok: failed.length === 0, failed, decodedName: decoded.name };
+      } catch (e) {
+        return { ok: false, reason: String(e) };
+      }
+    }
+
+    // Try File System Access API (Chrome/Edge) for true overwrite of a chosen file
+    let activeFileHandle = null;
+
+    async function saveWithFilePicker(htmlContent, suggestedName, forceNewPicker) {
+      if (window.showSaveFilePicker) {
+        try {
+          if (forceNewPicker || !activeFileHandle) {
+            activeFileHandle = await window.showSaveFilePicker({
+              suggestedName: suggestedName,
+              types: [{
+                description: 'Character Sheet HTML',
+                accept: { 'text/html': ['.html'] }
+              }]
+            });
+          }
+          const writable = await activeFileHandle.createWritable();
+          await writable.write(htmlContent);
+          await writable.close();
+          return { ok: true, method: 'file-picker', name: activeFileHandle.name };
+        } catch (err) {
+          if (err.name === 'AbortError') return { ok: false, cancelled: true };
+          // fall through to download
+          console.warn('File System Access failed, falling back to download', err);
+        }
+      }
+      // Fallback: normal download
+      downloadHtmlFile(suggestedName, htmlContent);
+      return { ok: true, method: 'download', name: suggestedName };
+    }
+
+    // Updates current character → downloads/overwrites an HTML file for THIS character
+    async function saveCharacter() {
+      const data = collectData();
+      if (!data.name || !data.name.trim()) {
+        alert('Please enter a Character Name before saving.');
+        return;
+      }
+
+      if (!currentCharacterId) {
+        currentCharacterId = generateId();
+      }
+      data.id = currentCharacterId;
+      data.savedAt = new Date().toISOString();
+
+      // Also keep a browser backup
+      let saved = getSavedList();
+      const idx = saved.findIndex(c => c.id === data.id);
+      const copy = JSON.parse(JSON.stringify(data));
+      if (idx >= 0) saved[idx] = copy;
+      else saved.push(copy);
+      writeSavedList(saved);
+
+      const html = buildStandaloneHtml(data);
+      const filename = safeFilename(data.name);
+      const verified = verifyEmbeddedText(html, data);
+      if (!verified.ok) {
+        console.error('Embed verification failed', verified);
+        alert('Warning: could not verify text was embedded (' + (verified.reason || (verified.failed || []).join(', ')) + ').\nA JSON backup will still download.');
+      }
+
+      const result = await saveWithFilePicker(html, filename, false);
+      if (result.cancelled) {
+        updateSaveStatus('Save cancelled.');
+        return;
+      }
+      // Always download JSON backup as a second file
+      downloadJsonBackup(data);
+
+      const textCheck = [
+        data.features, data.notes, data.freeText, data.equipHelm, data.equipWeapons
+      ].filter(t => t && String(t).trim()).length;
+      updateSaveStatus(`Saved “${data.name}” → ${result.name} + JSON backup`);
+      alert(
+        `Saved “${data.name}”\n\n` +
+        `HTML file: ${result.name}\n` +
+        `JSON backup: also downloaded\n\n` +
+        `Text sections saved: ${textCheck}\n` +
+        `Embed verified: ${verified.ok ? 'YES' : 'NO'}\n\n` +
+        `Open the new .html file. If text is missing, use Import on the JSON backup.`
+      );
+    }
+
+    // Always creates a NEW html file (new ID) for a separate character
+    async function saveAsNewCharacter() {
+      const data = collectData();
+      if (!data.name || !data.name.trim()) {
+        alert('Please enter a Character Name before saving.');
+        return;
+      }
+
+      currentCharacterId = generateId();
+      data.id = currentCharacterId;
+      data.savedAt = new Date().toISOString();
+
+      let saved = getSavedList();
+      saved.push(JSON.parse(JSON.stringify(data)));
+      writeSavedList(saved);
+
+      // Clear file handle so we don't overwrite a previous character's file
+      activeFileHandle = null;
+
+      const html = buildStandaloneHtml(data);
+      const filename = safeFilename(data.name);
+      const verified = verifyEmbeddedText(html, data);
+      if (!verified.ok) {
+        console.error('Embed verification failed', verified);
+        alert('Warning: could not verify text was embedded (' + (verified.reason || (verified.failed || []).join(', ')) + ').\nA JSON backup will still download.');
+      }
+
+      const result = await saveWithFilePicker(html, filename, true);
+      if (result.cancelled) {
+        updateSaveStatus('Save cancelled.');
+        return;
+      }
+      downloadJsonBackup(data);
+
+      const textCheck = [
+        data.features, data.notes, data.freeText, data.equipHelm, data.equipWeapons
+      ].filter(t => t && String(t).trim()).length;
+      updateSaveStatus(`Saved NEW “${data.name}” → ${result.name} + JSON backup`);
+      alert(
+        `Created new character file:\n${result.name}\n\n` +
+        `JSON backup also downloaded\n` +
+        `Text sections saved: ${textCheck}\n` +
+        `Embed verified: ${verified.ok ? 'YES' : 'NO'}\n\n` +
+        `Open the new .html file. If text is missing, click Import and choose the JSON backup.`
+      );
+    }
+
+    function clearAllCharacters() {
+      if (!confirm('Clear browser backup list only?\n\nThis does NOT delete .html files already on your computer.')) return;
+      localStorage.removeItem('dndChars');
+      localStorage.removeItem('dndLastCharId');
+      localStorage.removeItem('dndLastChar');
+      updateSaveStatus('Browser backup list cleared. Your .html files on disk are untouched.');
+    }
+
+    function openLoadModal() {
+      let saved = getSavedList();
+      // Migrate any old entries that lack an id
+      let changed = false;
+      saved = saved.map(c => {
+        if (!c.id) {
+          c.id = generateId();
+          changed = true;
+        }
+        return c;
+      });
+      if (changed) writeSavedList(saved);
+
+      const list = document.getElementById('charList');
+      list.innerHTML = '';
+      if (saved.length === 0) {
+        list.innerHTML = '<li style="justify-content:center;color:#5c4a38;">No saved characters yet.<br><small>Fill out a sheet and click “Save as New”.</small></li>';
+      } else {
+        saved.forEach((c) => {
+          const li = document.createElement('li');
+          const idAttr = c.id;
+          const when = c.savedAt ? new Date(c.savedAt).toLocaleString() : '';
+          li.innerHTML = `
+            <div>
+              <div class="char-info">${c.name || 'Unnamed'}</div>
+              <div class="char-meta">${c.classLevel || ''} • ${c.race || ''}${when ? ' • ' + when : ''}</div>
+            </div>
+            <button class="delete-btn" data-id="${idAttr}">✕</button>
+          `;
+          li.onclick = () => { applyData(c); closeLoadModal(); };
+          li.querySelector('.delete-btn').onclick = (e) => {
+            e.stopPropagation();
+            deleteCharacter(idAttr);
+          };
+          list.appendChild(li);
+        });
+      }
+      document.getElementById('loadModal').classList.add('open');
+    }
+
+    function closeLoadModal() {
+      document.getElementById('loadModal').classList.remove('open');
+    }
+
+    function deleteCharacter(id) {
+      if (!confirm('Delete this character?')) return;
+      let saved = getSavedList().filter(c => c.id !== id);
+      writeSavedList(saved);
+      if (currentCharacterId === id) {
+        currentCharacterId = null;
+      }
+      if (localStorage.getItem('dndLastCharId') === id) {
+        localStorage.removeItem('dndLastCharId');
+      }
+      updateSaveStatus();
+      openLoadModal();
+    }
+
+    async function newCharacter() {
+      const choice = confirm(
+        'Create a blank character sheet?\n\n' +
+        'OK = clear this page and download a blank .html file to your computer\n' +
+        'Cancel = do nothing'
+      );
+      if (!choice) return;
+
+      currentCharacterId = null;
+      activeFileHandle = null;
+      resetSheet(true);
+
+      // Download a blank standalone sheet (no embedded character)
+      const html = buildStandaloneHtml(null);
+      const filename = 'Blank_Character_Sheet.html';
+      const result = await saveWithFilePicker(html, filename, true);
+      if (result.cancelled) {
+        updateSaveStatus('Blank sheet ready on this page (file download cancelled).');
+        return;
+      }
+      updateSaveStatus(`Blank sheet downloaded as ${result.name}. Fill it in, then Save as New.`);
+      alert(
+        `Blank character sheet file created:\n${result.name}\n\n` +
+        `Fill it out, then click “Save as New” to save that character as its own file.`
+      );
+    }
+
+    function resetSheet(skipConfirm = false) {
+      if (!skipConfirm && !confirm('Reset the entire sheet?')) return;
+
+      // Only clear the ID when explicitly starting a new character (newCharacter already sets it null)
+      abilityScores = { STR: 0, AGI: 0, STA: 0, INT: 0, SPI: 0 };
+      characterImages = { front: '', side: '', rear: '' };
+
+      document.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(el => {
+        if (el.id && el.id.startsWith('score-')) el.value = 0;
+        else if (['dodgeRating','hpMax','hpCurrent','hpTemp','passivePerception','critBonusExtra',
+                   'resistNonMagical','resistMagical','resistElemental',
+                   'gold','silver','copper','initiative',
+                   'miscSTR','miscAGI','miscSTA','miscINT','miscSPI'].includes(el.id)) el.value = 0;
+        else if (el.id === 'speed') el.value = '30 ft.';
+        else el.value = '';
+      });
+
+      clearImage('front');
+      clearImage('side');
+      clearImage('rear');
+
+      const tbody = document.getElementById('attacksBody');
+      tbody.innerHTML = '';
+      addAttackRow();
+      addAttackRow();
+
+      updateAllModifiers();
+      updateCritTotal();
+      setTimeout(() => {
+        document.querySelectorAll('textarea.auto-expand').forEach(autoExpandTextarea);
+      }, 50);
+    }
+
+    function exportJSON() {
+      const data = collectData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${data.name || 'character'}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          applyData(JSON.parse(e.target.result));
+          alert('Character imported successfully!');
+        } catch (err) {
+          alert('Invalid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
+    function loadFromLocalStorage() {
+      // Prefer ID-based lookup (new system). Fall back to old name-based key for compatibility.
+      const lastId = localStorage.getItem('dndLastCharId');
+      const saved = JSON.parse(localStorage.getItem('dndChars') || '[]');
+      if (!saved.length) return;
+
+      let found = null;
+      if (lastId) {
+        found = saved.find(c => c.id === lastId);
+      }
+      // Migration: old saves used name as the key
+      if (!found) {
+        const lastName = localStorage.getItem('dndLastChar');
+        if (lastName) {
+          found = saved.find(c => c.name === lastName);
+        }
+      }
+      if (found) {
+        // Ensure older characters get an ID
+        if (!found.id) {
+          found.id = generateId();
+          const idx = saved.findIndex(c => c === found || (c.name === found.name && !c.id));
+          if (idx >= 0) {
+            saved[idx] = found;
+            localStorage.setItem('dndChars', JSON.stringify(saved));
+          }
+        }
+        applyData(found);
+      }
+    }
+
+    document.getElementById('loadModal').addEventListener('click', e => {
+      if (e.target.id === 'loadModal') closeLoadModal();
+    });
+
+    init();
+  </script>
+</body>
+</html>
